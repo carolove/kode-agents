@@ -1,0 +1,4 @@
+venv
+thirdparts
+.env
+*.pyc
