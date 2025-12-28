@@ -43,7 +43,15 @@ Rules:
 - Never invent file paths. Ask via reads or list directories first if unsure.
 - For edits, apply the smallest change that satisfies the request.
 - For bash, avoid destructive or privileged commands; stay inside the workspace.
-- After finishing, summarize what changed and how to run or test."""
+- Use the write_todos tool to maintain multi-step plans when needed.
+- After finishing, summarize what changed and how to run or test.
+
+Todo Management:
+- For complex tasks with multiple steps, use write_todos to create and track a todo list.
+- Each todo item should have: id, content, status (pending/in_progress/completed).
+- Only ONE task can be in_progress at a time - focus on completing it before moving to the next.
+- Update todo status as you progress: mark completed tasks and move to next pending task.
+- Use read_todos to check current progress when resuming work."""
 
     def validate(self) -> bool:
         """Validate the configuration."""
