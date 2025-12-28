@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from dataclasses import dataclass, field
+from typing import List, Optional
 
 
 @dataclass
@@ -21,6 +22,10 @@ class AgentConfig:
     max_tokens: int = 16000
     max_tool_result_chars: int = 100_000
 
+    # Subagent Configuration
+    enable_subagents: bool = True
+    subagent_types: Optional[List[str]] = None  # None means all available
+
     # System Prompt
     system_prompt: str = ""
 
@@ -34,6 +39,21 @@ class AgentConfig:
 
     def _default_system_prompt(self) -> str:
         """Generate the default system prompt."""
+        subagent_section = ""
+        if self.enable_subagents:
+            subagent_section = """
+
+Subagent Delegation:
+You can spawn subagents for complex subtasks using the `task` tool:
+- explore: Read-only agent for exploring code, finding files, searching. Use for reconnaissance.
+- code: Full coding agent for implementing features and fixing bugs. Use for multi-step coding tasks.
+- plan: Planning agent for designing implementation strategies. Returns a numbered plan.
+
+Use subagents to:
+- Isolate complex tasks and keep your context clean
+- Parallelize independent work across multiple subagents
+- Delegate focused tasks that require deep exploration or implementation"""
+
         return f"""You are a coding agent operating INSIDE the user's repository at {self.workspace_dir}.
 Follow this loop strictly: plan briefly → use TOOLS to act directly on files/shell → report concise results.
 
@@ -51,7 +71,7 @@ Todo Management:
 - Each todo item should have: id, content, status (pending/in_progress/completed).
 - Only ONE task can be in_progress at a time - focus on completing it before moving to the next.
 - Update todo status as you progress: mark completed tasks and move to next pending task.
-- Use read_todos to check current progress when resuming work."""
+- Use read_todos to check current progress when resuming work.{subagent_section}"""
 
     def validate(self) -> bool:
         """Validate the configuration."""
