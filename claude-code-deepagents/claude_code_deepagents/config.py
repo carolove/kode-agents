@@ -26,6 +26,12 @@ class AgentConfig:
     enable_subagents: bool = True
     subagent_types: Optional[List[str]] = None  # None means all available
 
+    # Skills Configuration
+    enable_skills: bool = True
+    user_skills_dir: Optional[Path] = None  # Default: ~/.deepagents/claude-code/skills
+    project_skills_dir: Optional[Path] = None  # Default: {workspace}/.deepagents/skills
+    assistant_id: str = "claude-code"
+
     # System Prompt
     system_prompt: str = ""
 
@@ -33,6 +39,17 @@ class AgentConfig:
         """Post initialization validation and setup."""
         if isinstance(self.workspace_dir, str):
             self.workspace_dir = Path(self.workspace_dir)
+
+        # Set default skills directories
+        if self.user_skills_dir is None:
+            self.user_skills_dir = Path.home() / ".deepagents" / self.assistant_id / "skills"
+        elif isinstance(self.user_skills_dir, str):
+            self.user_skills_dir = Path(self.user_skills_dir)
+
+        if self.project_skills_dir is None:
+            self.project_skills_dir = self.workspace_dir / ".deepagents" / "skills"
+        elif isinstance(self.project_skills_dir, str):
+            self.project_skills_dir = Path(self.project_skills_dir)
 
         if not self.system_prompt:
             self.system_prompt = self._default_system_prompt()

@@ -13,6 +13,8 @@ from deepagents.backends import FilesystemBackend
 
 from claude_code_deepagents.config import AgentConfig
 from claude_code_deepagents.subagents import create_subagents_from_names
+from claude_code_deepagents.skills import SkillsMiddleware
+from claude_code_deepagents.tools import web_search, fetch_url
 
 
 def unwrap_overwrite(value: Any) -> Any:
@@ -156,6 +158,7 @@ def create_coding_agent(config: AgentConfig) -> CompiledStateGraph:
     - Shell execution (execute)
     - Task management (write_todos, read_todos)
     - Sub-agent delegation (task) via subagents
+    - Skills system for domain-specific knowledge
 
     Available subagents:
     - explore: For exploring and analyzing codebases (read-only focus)
@@ -173,22 +176,38 @@ def create_coding_agent(config: AgentConfig) -> CompiledStateGraph:
     # Use FilesystemBackend for real file operations
     backend = FilesystemBackend(
         root_dir=config.workspace_dir,
-        virtual_mode=True,  # Use virtual paths for security
+        virtual_mode=False,  # Use virtual paths for security
     )
 
     # Create subagents using official deepagents method
     subagents = None
     if config.enable_subagents:
+        # Add web search tools to subagents
+        additional_tools = [web_search, fetch_url]
         subagents = create_subagents_from_names(
             names=config.subagent_types,
             workspace_dir=config.workspace_dir,
+            additional_tools=additional_tools,
         )
+
+    # Build middleware list
+    middleware = []
+
+    # Add skills middleware if enabled
+    if config.enable_skills:
+        skills_middleware = SkillsMiddleware(
+            user_skills_dir=config.user_skills_dir,
+            project_skills_dir=config.project_skills_dir,
+            assistant_id=config.assistant_id,
+        )
+        middleware.append(skills_middleware)
 
     agent = create_deep_agent(
         model=model,
         system_prompt=config.system_prompt,
         backend=backend,
         subagents=subagents,
+        middleware=middleware,
     )
 
     return agent

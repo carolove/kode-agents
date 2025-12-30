@@ -13,6 +13,7 @@ if str(_ROOT) not in sys.path:
 
 from claude_code_deepagents.config import load_config, AgentConfig
 from claude_code_deepagents.agent import CodingAgentSession, ContextStats
+from claude_code_deepagents.skills.load import list_skills
 
 # ANSI color codes for todo rendering
 RESET = "\x1b[0m"
@@ -169,6 +170,46 @@ def print_context_stats(before: ContextStats, after: ContextStats, event_type: O
         return
 
 
+def print_skills(skills: List[Dict[str, Any]]) -> None:
+    """Print available skills in a formatted list.
+
+    Args:
+        skills: List of SkillMetadata dictionaries
+    """
+    if not skills:
+        print(f"{CONTEXT_COLOR}No skills available. Create skills in ~/.deepagents/claude-code/skills/ or ./.deepagents/skills/{RESET}")
+        return
+
+    print(f"\n{SUBAGENT_COLOR}📚 Available Skills:{RESET}")
+
+    for skill in skills:
+        source = skill.get("source", "unknown")
+        name = skill.get("name", "unnamed")
+        description = skill.get("description", "No description")
+        path = skill.get("path", "")
+
+        # Color based on source
+        if source == "project":
+            color = "\x1b[38;5;46m"  # Green for project skills
+            source_marker = "[project]"
+        else:  # user
+            color = "\x1b[38;5;75m"   # Blue for user skills
+            source_marker = "[user]"
+
+        # Display skill info
+        print(f"  {color}• {name} {source_marker}{RESET}")
+        print(f"    {description}")
+        if path:
+            # Show relative path if possible
+            try:
+                rel_path = Path(path).relative_to(Path.cwd())
+                path_str = f"./{rel_path}"
+            except ValueError:
+                path_str = path
+            print(f"    {CONTEXT_COLOR}📄 {path_str}{RESET}")
+        print()
+
+
 async def run_interactive_async(config: AgentConfig, show_context_stats: bool = True):
     """Run the interactive REPL session with async streaming.
 
@@ -179,7 +220,8 @@ async def run_interactive_async(config: AgentConfig, show_context_stats: bool = 
     print(f"Claude Code Agent (deepagents) — cwd: {config.workspace_dir}")
     if show_context_stats:
         print("Context tracking enabled. Use 'stats' to see current context size.")
-    print('Type "exit" or "quit" to leave.\n')
+    print('Type "exit" or "quit" to leave.')
+    print('Use "skills list" to see available skills.\n')
 
     session = CodingAgentSession(config)
 
@@ -199,6 +241,15 @@ async def run_interactive_async(config: AgentConfig, show_context_stats: bool = 
         if line.strip().lower() == "stats":
             stats = session.get_context_stats()
             print(f"\n{CONTEXT_COLOR}{stats}{RESET}\n")
+            continue
+
+        # Special command to show available skills
+        if line.strip().lower() == "skills list":
+            skills = list_skills(
+                user_skills_dir=config.user_skills_dir,
+                project_skills_dir=config.project_skills_dir
+            )
+            print_skills(skills)
             continue
 
         print("\n● ", end="")
